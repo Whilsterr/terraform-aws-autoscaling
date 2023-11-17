@@ -12,11 +12,10 @@ resource "aws_launch_template" "foobar" {
 ### Combien de machines dans l'ASG, dans quels subnets (vpc_zone_identifier), 
 ### Reliés à un target group + launch_template
 resource "aws_autoscaling_group" "bar" {
-  desired_capacity   = 1
   max_size           = 2
-  min_size           = 1
+  min_size           = 2
   vpc_zone_identifier = [module.discovery.public_subnets[0], module.discovery.public_subnets[1], module.discovery.public_subnets[2]]
-  target_group_arns = [aws_lb_target_group.alb_target_group.arn]
+  target_group_arns = [aws_lb_target_group.alb_target_group.arn, aws_lb_target_group.alb_target_group_2.arn]
 
   launch_template {
     id      = aws_launch_template.foobar.id
@@ -52,11 +51,20 @@ resource "aws_security_group_rule" "sgr-asg-2" {
     security_group_id = "${aws_security_group.tf-sg-asg.id}"
 }
 
+resource "aws_security_group_rule" "sgr-asg-3" {
+    type              = "ingress"
+    from_port         = 19999
+    to_port           = 19999
+    protocol          = "tcp"
+    cidr_blocks       = ["0.0.0.0/0"]
+    security_group_id = "${aws_security_group.tf-sg-asg.id}"
+}
+
 ### 2 alarme (plus grand et plus petit) - 2 actions (augmente, descend)
 ### Policy d'autoscaling, Passe le nombre d'instance à 2
 resource "aws_autoscaling_policy" "autoscaling_policy_up" {
   name                   = "autoscaling_policy-up"
-  scaling_adjustment     = 2
+  scaling_adjustment     = 1
   adjustment_type        = "ChangeInCapacity"
   cooldown               = 300
   autoscaling_group_name = aws_autoscaling_group.bar.name
@@ -72,7 +80,7 @@ resource "aws_cloudwatch_metric_alarm" "alarmup" {
   namespace           = "AWS/EC2"
   period              = 120
   statistic           = "Average"
-  threshold           = 80
+  threshold           = 30
 
   dimensions = {
     AutoScalingGroupName = aws_autoscaling_group.bar.name
@@ -85,7 +93,7 @@ resource "aws_cloudwatch_metric_alarm" "alarmup" {
 ### Policy d'autoscaling, Passe le nombre d'instance à 1
 resource "aws_autoscaling_policy" "autoscaling_policy_down" {
   name                   = "autoscaling_policy-down"
-  scaling_adjustment     = 1
+  scaling_adjustment     = -1
   adjustment_type        = "ChangeInCapacity"
   cooldown               = 300
   autoscaling_group_name = aws_autoscaling_group.bar.name
@@ -101,7 +109,7 @@ resource "aws_cloudwatch_metric_alarm" "alarmdown" {
   namespace           = "AWS/EC2"
   period              = 120
   statistic           = "Average"
-  threshold           = 40
+  threshold           = 5
 
   dimensions = {
     AutoScalingGroupName = aws_autoscaling_group.bar.name

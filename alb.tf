@@ -19,6 +19,13 @@ resource "aws_lb_target_group" "alb_target_group" {
   vpc_id   = module.discovery.vpc_id
 }
 
+resource "aws_lb_target_group" "alb_target_group_2" {
+  name     = "alb-target-group-2"
+  port     = 19999
+  protocol = "HTTP"
+  vpc_id   = module.discovery.vpc_id
+}
+
 ###Listener, relié au load_balancer, écoute sur le port 80
 ###Forward le traffic vers le target group
 resource "aws_lb_listener" "front_end" {
@@ -29,6 +36,17 @@ resource "aws_lb_listener" "front_end" {
   default_action {
     type             = "forward"
     target_group_arn = aws_lb_target_group.alb_target_group.arn
+  }
+}
+
+resource "aws_lb_listener" "front_end_2" {
+  load_balancer_arn = aws_lb.front_end.arn
+  port              = "81"
+  protocol          = "HTTP"
+
+  default_action {
+    type             = "forward"
+    target_group_arn = aws_lb_target_group.alb_target_group_2.arn
   }
 }
 
@@ -45,6 +63,16 @@ resource "aws_security_group_rule" "alb-ingress" {
   type              = "ingress"
   from_port         = 80
   to_port           = 80
+  protocol          = "tcp"
+  cidr_blocks       = ["0.0.0.0/0"]
+  security_group_id = "${aws_security_group.alb_sg.id}"
+  
+}
+
+resource "aws_security_group_rule" "alb-ingress-2" {
+  type              = "ingress"
+  from_port         = 81
+  to_port           = 81
   protocol          = "tcp"
   cidr_blocks       = ["0.0.0.0/0"]
   security_group_id = "${aws_security_group.alb_sg.id}"

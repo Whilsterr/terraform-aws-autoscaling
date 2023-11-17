@@ -11,7 +11,7 @@ module "discovery" {
   source              = "github.com/Lowess/terraform-aws-discovery"
   aws_region          = var.aws_region
   vpc_name            = "${var.vpc_name}"
-  ec2_ami_names       = ["*web-v1*"]
+  ec2_ami_names       = ["*Web-V2*"]
   }
 
 ### Affichage du contenu du module
